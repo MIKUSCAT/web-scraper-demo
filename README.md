@@ -1,308 +1,47 @@
-# Product Hunt 数据爬虫
-
-一个功能完整的 Product Hunt 网站数据采集工具，支持多种爬虫引擎和数据库存储方案。
-
-## 🚀 功能特性
-
-- **多引擎支持**: 支持 Playwright 和 Requests 两种爬虫引擎
-- **数据库集成**: 支持 PostgreSQL 和 MongoDB 数据存储
-- **数据导出**: 支持 JSON 和 CSV 格式数据导出
-- **异步处理**: 基于 asyncio 的高性能异步爬取
-- **智能解析**: 自动识别和提取产品信息
-- **错误处理**: 完善的错误处理和重试机制
-- **日志记录**: 详细的日志记录和监控
-- **配置灵活**: 支持环境变量和配置文件
-
-## 📦 安装依赖
-
-### 1. 克隆项目
-```bash
-git clone <repository-url>
-cd producthunt-scraper
-```
-
-### 2. 安装 Python 依赖
-```bash
-pip install -r requirements.txt
-```
-
-### 3. 安装 Playwright 浏览器
-```bash
-playwright install chromium
-```
-
-### 4. 配置环境变量
-```bash
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env 文件，配置数据库连接信息
-```
-
-## 🗄️ 数据库配置
-
-### PostgreSQL 配置
-```bash
-# 安装 PostgreSQL
-# Ubuntu/Debian
-sudo apt-get install postgresql postgresql-contrib
-
-# macOS
-brew install postgresql
-
-# 创建数据库
-sudo -u postgres createdb producthunt_data
-```
-
-### MongoDB 配置
-```bash
-# 安装 MongoDB
-# Ubuntu/Debian
-sudo apt-get install mongodb
-
-# macOS
-brew install mongodb-community
-
-# 启动 MongoDB 服务
-sudo systemctl start mongod  # Linux
-brew services start mongodb-community  # macOS
-```
-
-## 🎯 使用方法
-
-### 基本使用
-```bash
-# 使用默认配置运行
-python main.py
-
-# 指定特定URL
-python main.py --urls https://www.producthunt.com/ https://www.producthunt.com/topics/ai
-
-# 使用不同的爬虫引擎
-python main.py --engine requests
-
-# 使用不同的数据库
-python main.py --database mongodb
-
-# 设置请求延迟
-python main.py --delay 3.0
-```
-
-### 演示程序
-```bash
-# 运行演示程序，测试所有功能
-python demo.py
-```
-
-### 命令行参数
-
-| 参数 | 说明 | 默认值 | 可选值 |
-|------|------|--------|--------|
-| `--urls` | 要爬取的URL列表 | 默认URL集合 | 任意有效URL |
-| `--engine` | 爬虫引擎 | playwright | playwright, requests |
-| `--database` | 数据库类型 | postgresql | postgresql, mongodb |
-| `--headless` | 无头模式 | True | True, False |
-| `--delay` | 请求间隔(秒) | 2.0 | 任意正数 |
-
-## 📊 数据结构
-
-爬取的产品数据包含以下字段：
-
-```python
-{
-    "name": "产品名称",
-    "tagline": "产品标语/简介", 
-    "description": "详细描述",
-    "url": "产品链接",
-    "votes": 投票数,
-    "comments": 评论数,
-    "maker": "制作者",
-    "category": "分类",
-    "launch_date": "发布日期",
-    "image_url": "产品图片URL",
-    "scraped_at": "采集时间",
-    "source_url": "来源页面URL"
-}
-```
-
-## 🔧 配置说明
-
-### 环境变量配置 (.env)
-
-```bash
-# 数据库配置
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=producthunt_data
-POSTGRES_USER=your_username
-POSTGRES_PASSWORD=your_password
-
-MONGO_URI=mongodb://localhost:27017/
-MONGO_DB=producthunt_data
-
-# 爬虫配置
-SCRAP_DELAY=2
-MAX_RETRIES=3
-TIMEOUT=30
-HEADLESS=true
-
-# 输出配置
-OUTPUT_FORMAT=json
-SAVE_TO_FILE=true
-FILE_PATH=./data/scraped_data.json
-```
-
-## 📁 项目结构
-
-```
-producthunt-scraper/
-├── main.py                 # 主程序入口
-├── demo.py                 # 演示程序
-├── requirements.txt        # Python依赖
-├── .env.example           # 环境变量模板
-├── README.md              # 项目说明
-├── config/
-│   └── config.py          # 配置管理
-├── src/
-│   ├── models.py          # 数据模型
-│   ├── scraper.py         # 爬虫引擎
-│   ├── database.py        # 数据库操作
-│   └── logger.py          # 日志配置
-├── data/                  # 数据输出目录
-└── logs/                  # 日志文件目录
-```
-
-## 🎨 使用示例
-
-### 1. 基础爬取示例
-
-```python
-import asyncio
-from src.scraper import ProductHuntScraper
-
-async def basic_scrape():
-    async with ProductHuntScraper() as scraper:
-        result = await scraper.scrape_page("https://www.producthunt.com/")
-        
-        if result.success:
-            print(f"获取到 {len(result.products)} 个产品")
-            for product in result.products[:5]:
-                print(f"- {product.name}: {product.tagline}")
-
-asyncio.run(basic_scrape())
-```
-
-### 2. 数据库存储示例
-
-```python
-import asyncio
-from src.database import DatabaseFactory
-from src.models import ProductData
-
-async def database_example():
-    # 创建数据库管理器
-    db_manager = DatabaseFactory.create_manager("postgresql")
-    await db_manager.connect()
-    
-    # 创建示例产品
-    product = ProductData(
-        name="示例产品",
-        tagline="这是一个示例",
-        source_url="https://www.producthunt.com/"
-    )
-    
-    # 保存到数据库
-    await db_manager.save_products([product])
-    
-    # 获取数据
-    products = await db_manager.get_products(limit=10)
-    print(f"数据库中有 {len(products)} 个产品")
-    
-    await db_manager.disconnect()
-
-asyncio.run(database_example())
-```
-
-### 3. 数据导出示例
-
-```python
-from src.database import DataExporter
-
-# 示例数据
-data = [
-    {"name": "产品1", "votes": 100},
-    {"name": "产品2", "votes": 50}
-]
-
-# 导出到JSON
-DataExporter.export_to_json(data, "output.json")
-
-# 导出到CSV
-DataExporter.export_to_csv(data, "output.csv")
-```
-
-## 🚨 注意事项
-
-1. **遵守网站规则**: 请遵守 Product Hunt 的 robots.txt 和使用条款
-2. **合理设置延迟**: 建议设置适当的请求延迟，避免对服务器造成压力
-3. **数据库权限**: 确保数据库用户有足够的权限创建表和插入数据
-4. **网络环境**: 某些地区可能需要代理才能访问 Product Hunt
-5. **浏览器依赖**: 使用 Playwright 时需要安装对应的浏览器
-
-## 🔍 故障排除
-
-### 常见问题
-
-**1. Playwright 浏览器安装失败**
-```bash
-# 手动安装浏览器
-playwright install chromium --force
-```
-
-**2. 数据库连接失败**
-- 检查数据库服务是否启动
-- 验证连接参数是否正确
-- 确认用户权限是否足够
-
-**3. 爬取数据为空**
-- 检查目标网站是否可访问
-- 验证页面结构是否发生变化
-- 尝试增加请求延迟
-
-**4. 内存使用过高**
-- 减少并发数量
-- 增加请求间隔
-- 使用 requests 引擎替代 playwright
-
-## 📈 性能优化
-
-1. **并发控制**: 合理设置并发数量，避免过载
-2. **缓存机制**: 对重复请求进行缓存
-3. **数据库索引**: 为常用查询字段创建索引
-4. **内存管理**: 及时释放不需要的对象
-5. **日志级别**: 生产环境调整日志级别
-
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 🙏 致谢
-
-- [Playwright](https://playwright.dev/) - 现代化的浏览器自动化
-- [Requests](https://requests.readthedocs.io/) - 优雅的HTTP库
-- [Loguru](https://loguru.readthedocs.io/) - 简化的日志记录
-- [Pydantic](https://pydantic-docs.helpmanual.io/) - 数据验证和设置管理
-
----
-
-**免责声明**: 本工具仅供学习和研究使用，请遵守相关网站的使用条款和法律法规。
+### 研发思路说明
+
+尊敬的招聘负责人，
+
+您好！非常感谢您给我这个宝贵的机会来展示我的学习成果。
+
+在接到“从 Product Hunt 采集数据并存入数据库”这个任务后，我感到非常兴奋，因为它正好涵盖了我近期正在努力学习的几个关键技术领域。虽然我还是一个新手，但我借助了 AI 编码工具和大量的在线文档来帮助我思考和实现这个项目。以下是我的实现思路：
+
+#### **第一步：拆分任务，搞清楚要做什么**
+
+我首先把这个大任务拆分成了几个小目标，这样感觉清晰多了：
+1.  **把网页内容下载下来**：怎么从 Product Hunt 网站上拿到产品列表的 HTML 代码。
+2.  **从内容里挑出需要的信息**：怎么从下载下来的 HTML 里，准确地找到“产品名字”和“产品介绍”。
+3.  **把找到的信息存起来**：怎么把这些信息保存到 `PostgreSQL` 或者 `MongoDB` 数据库里。
+4.  **把代码整理好**：不能把所有代码都写在一个文件里，要让它看起来整洁、容易看懂。
+
+#### **第二步：选择工具并尝试解决问题**
+
+针对每个小目标，我研究并选择了相应的 Python 工具：
+
+**1. 关于下载网页 (数据采集):**
+
+我了解到，有的网页内容是直接就有的，但很多现代网站（比如 Product Hunt）的内容是需要等一会儿，由浏览器里的 JavaScript 加载出来的。
+
+*   为了解决这个问题，我学习并使用了 `Playwright`。它可以像一个真正的浏览器一样运行，能很好地处理这种动态加载的情况，确保我能拿到完整的页面数据。
+*   同时，我也保留了使用 `requests` 库的方法。对于一些简单的、没有动态加载的网页，用 `requests` 会更快、更简单。我觉得在一个项目里展示两种方法，可以说明我考虑了不同的情况。
+
+**2. 关于挑选信息 (数据解析):**
+
+拿到 HTML 之后，我使用 `BeautifulSoup4` 这个库来解析它。它能让我很方便地通过标签（比如 `<h3>`）或者 CSS 类名来查找我需要的数据，就像拼图一样，把产品名称和介绍一块块找出来。
+
+**3. 关于存入数据库:**
+
+这是任务的核心要求，需要支持两种数据库。
+
+*   我学习了如何使用 `psycopg2` 这个库来连接和操作 `PostgreSQL`。在存数据的时候，我特意研究了如何防止重复存入同样的产品，找到了一个叫 `ON CONFLICT` 的方法，感觉非常实用。
+*   对于 `MongoDB`，我用了 `pymongo` 库。它的操作方式和 `PostgreSQL` 很不一样，是基于文档的，感觉很灵活。我也实现了类似的数据去重功能，确保数据库里的数据是干净的。
+*   为了能在两种数据库之间方便地切换，我把它们的功能都封装了起来，写了一个简单的“工厂”（`DatabaseFactory`），这样主程序只要改一个参数，就能决定用哪个数据库了。
+
+#### **第三步：总结与反思**
+
+通过完成这个项目，我不仅学会了如何使用 `Playwright`、`Requests`、`PostgreSQL` 和 `MongoDB` 这些具体的工具，更重要的是，我实践了如何将一个需求拆解、分析并一步步实现出来。
+
+我知道作为一个新手，我的代码可能还有很多可以改进的地方，但我非常享受这个从零到一解决问题的过程。我渴望能有一个机会，在真实的团队环境中继续学习和成长。
+
+再次感谢您的时间！
+
